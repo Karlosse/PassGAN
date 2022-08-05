@@ -76,17 +76,18 @@ with open(os.path.join(args.input_dir, 'charmap.pickle'), 'rb') as f:
 with open(os.path.join(args.input_dir, 'inv_charmap.pickle'), 'rb') as f:
     inv_charmap = pickle.load(f)
 
+# print('LENGTH',args.batch_size, args.seq_length, args.layer_dim, len(charmap))
 fake_inputs = models.Generator(args.batch_size, args.seq_length, args.layer_dim, len(charmap))
 
-with tf.Session() as session:
+with tf.compat.v1.Session() as session:
 
     def generate_samples():
         samples = session.run(fake_inputs)
         samples = np.argmax(samples, axis=2)
         decoded_samples = []
-        for i in xrange(len(samples)):
+        for i in range(len(samples)):
             decoded = []
-            for j in xrange(len(samples[i])):
+            for j in range(len(samples[i])):
                 decoded.append(inv_charmap[samples[i][j]])
             decoded_samples.append(tuple(decoded))
         return decoded_samples
@@ -97,13 +98,13 @@ with tf.Session() as session:
                     s = "".join(s).replace('`', '')
                     f.write(s + "\n")
 
-    saver = tf.train.Saver()
+    saver = tf.compat.v1.train.Saver()
     saver.restore(session, args.checkpoint)
 
     samples = []
     then = time.time()
     start = time.time()
-    for i in xrange(int(args.num_samples / args.batch_size)):
+    for i in range(int(args.num_samples / args.batch_size)):
         
         samples.extend(generate_samples())
 

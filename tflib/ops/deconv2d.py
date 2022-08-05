@@ -95,7 +95,7 @@ def Deconv2D(
             output_shape = tf.stack([input_shape[0], 2*input_shape[1], 2*input_shape[2], output_dim])
 
         result = tf.nn.conv2d_transpose(
-            value=inputs, 
+            input=inputs, 
             filter=filters,
             output_shape=output_shape, 
             strides=[1, 2, 2, 1],

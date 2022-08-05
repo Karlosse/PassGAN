@@ -24,7 +24,7 @@ class NgramLanguageModel(object):
     def ngrams(self):
         n = self._n
         for sample in self._samples:
-            for i in xrange(len(sample)-n+1):
+            for i in range(len(sample)-n+1):
                 yield sample[i:i+n]
 
     def unique_ngrams(self):
@@ -89,20 +89,20 @@ def load_dataset(path, max_length, tokenize=False, max_vocab_size=2048):
     
     lines = []
 
-    with open(path, 'r') as f:
-        for line in f:
-            line = line[:-1]
-            if tokenize:
-                line = tokenize_string(line)
-            else:
-                line = tuple(line)
+    with open(path, 'r', errors='ignore') as f:
+            for line in f:
+                line = line[:-1]
+                if tokenize:
+                    line = tokenize_string(line)
+                else:
+                    line = tuple(line)
 
-            if len(line) > max_length:
-                line = line[:max_length]
-                continue # don't include this sample, its too long
-
+                if len(line) > max_length:
+                    line = line[:max_length]
+                    continue # don't include this sample, its too long
+                    
             # right pad with ` character
-            lines.append(line + ( ("`",)*(max_length-len(line)) ) )
+                lines.append(line + ( ("`",)*(max_length-len(line)) ) )
 
     np.random.shuffle(lines)
 
@@ -127,8 +127,5 @@ def load_dataset(path, max_length, tokenize=False, max_vocab_size=2048):
                 filtered_line.append('unk')
         filtered_lines.append(tuple(filtered_line))
 
-    # for i in xrange(100):
-    #     print filtered_lines[i]
-
-    print "loaded {} lines in dataset".format(len(lines))
+    print("loaded {} lines in dataset".format(len(lines)))
     return filtered_lines, charmap, inv_charmap
