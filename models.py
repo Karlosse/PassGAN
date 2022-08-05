@@ -6,6 +6,7 @@ import tflib.ops.conv1d
 def ResBlock(name, inputs, dim):
     output = inputs
     output = tf.nn.relu(output)
+    # print(name+'.1', dim, dim, 5, output)
     output = lib.ops.conv1d.Conv1D(name+'.1', dim, dim, 5, output)
     output = tf.nn.relu(output)
     output = lib.ops.conv1d.Conv1D(name+'.2', dim, dim, 5, output)
@@ -15,6 +16,7 @@ def Generator(n_samples, seq_len, layer_dim, output_dim, prev_outputs=None):
     output = make_noise(shape=[n_samples, 128])
     output = lib.ops.linear.Linear('Generator.Input', 128, seq_len * layer_dim, output)
     output = tf.reshape(output, [-1, layer_dim, seq_len])
+    # print('Generator.1', output, layer_dim)
     output = ResBlock('Generator.1', output, layer_dim)
     output = ResBlock('Generator.2', output, layer_dim)
     output = ResBlock('Generator.3', output, layer_dim)
@@ -46,4 +48,4 @@ def softmax(logits, num_classes):
     )
 
 def make_noise(shape):
-    return tf.random_normal(shape)
+    return tf.random.normal(shape)

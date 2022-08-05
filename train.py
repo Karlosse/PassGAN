@@ -1,11 +1,40 @@
 import os, sys
 sys.path.append(os.getcwd())
 
+# os.add_dll_directory("C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v11.7/bin")
+import ctypes
+import ctypes.util
+name = ctypes.util.find_library('cudart64_110.dll')
+lib = ctypes.cdll.LoadLibrary(name)
+
+# name = ctypes.util.find_library('cublas64_11.dll')
+# lib = ctypes.cdll.LoadLibrary(name)
+ 
+# name = ctypes.util.find_library('cublasLt64_11.dll')
+# lib = ctypes.cdll.LoadLibrary(name)
+
+name = ctypes.util.find_library('cufft64_10.dll')
+lib = ctypes.cdll.LoadLibrary(name)
+
+name = ctypes.util.find_library('curand64_10.dll')
+lib = ctypes.cdll.LoadLibrary(name)
+
+# name = ctypes.util.find_library('cusolver64_11.dll')
+# lib = ctypes.cdll.LoadLibrary(name)
+
+name = ctypes.util.find_library('cusparse64_11.dll')
+lib = ctypes.cdll.LoadLibrary(name)
+
+# name = ctypes.util.find_library('cudnn64_8.dll')
+# lib = ctypes.cdll.LoadLibrary(name)
+
 import time
 import pickle
 import argparse
 import numpy as np
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
+tf.compat.v1.disable_eager_execution()
+# import tensorflow as tf
 
 import utils
 import tflib as lib
@@ -75,7 +104,7 @@ args = parse_args()
 
 lines, charmap, inv_charmap = utils.load_dataset(
     path=args.training_data,
-    max_length=args.seq_length
+    max_length=args.seq_length,
 )
 
 if not os.path.isdir(args.output_dir):
@@ -96,6 +125,7 @@ with open(os.path.join(args.output_dir, 'inv_charmap.pickle'), 'wb') as f:
 
 real_inputs_discrete = tf.placeholder(tf.int32, shape=[args.batch_size, args.seq_length])
 real_inputs = tf.one_hot(real_inputs_discrete, len(charmap))
+
 fake_inputs = models.Generator(args.batch_size, args.seq_length, args.layer_dim, len(charmap))
 fake_inputs_discrete = tf.argmax(fake_inputs, fake_inputs.get_shape().ndims-1)
 
@@ -129,7 +159,7 @@ disc_train_op = tf.train.AdamOptimizer(learning_rate=1e-4, beta1=0.5, beta2=0.9)
 def inf_train_gen():
     while True:
         np.random.shuffle(lines)
-        for i in xrange(0, len(lines)-args.batch_size+1, args.batch_size):
+        for i in range(0, len(lines)-args.batch_size+1, args.batch_size):
             yield np.array(
                 [[charmap[c] for c in l] for l in lines[i:i+args.batch_size]],
                 dtype='int32'
@@ -138,39 +168,38 @@ def inf_train_gen():
 # During training we monitor JS divergence between the true & generated ngram
 # distributions for n=1,2,3,4. To get an idea of the optimal values, we
 # evaluate these statistics on a held-out set first.
-true_char_ngram_lms = [utils.NgramLanguageModel(i+1, lines[10*args.batch_size:], tokenize=False) for i in xrange(4)]
-validation_char_ngram_lms = [utils.NgramLanguageModel(i+1, lines[:10*args.batch_size], tokenize=False) for i in xrange(4)]
-for i in xrange(4):
-    print "validation set JSD for n={}: {}".format(i+1, true_char_ngram_lms[i].js_with(validation_char_ngram_lms[i]))
-true_char_ngram_lms = [utils.NgramLanguageModel(i+1, lines, tokenize=False) for i in xrange(4)]
-
+true_char_ngram_lms = [utils.NgramLanguageModel(i+1, lines[10*args.batch_size:], tokenize=False) for i in range(4)]
+validation_char_ngram_lms = [utils.NgramLanguageModel(i+1, lines[:10*args.batch_size], tokenize=False) for i in range(4)]
+for i in range(4):
+    print("validation set JSD for n={}: {}".format(i+1, true_char_ngram_lms[i].js_with(validation_char_ngram_lms[i])))
+true_char_ngram_lms = [utils.NgramLanguageModel(i+1, lines, tokenize=False) for i in range(4)]
 with tf.Session() as session:
-
+    
     session.run(tf.global_variables_initializer())
-
+    
     def generate_samples():
         samples = session.run(fake_inputs)
         samples = np.argmax(samples, axis=2)
         decoded_samples = []
-        for i in xrange(len(samples)):
+        for i in range(len(samples)):
             decoded = []
-            for j in xrange(len(samples[i])):
+            for j in range(len(samples[i])):
                 decoded.append(inv_charmap[samples[i][j]])
             decoded_samples.append(tuple(decoded))
         return decoded_samples
-
+    
     gen = inf_train_gen()
-
-    for iteration in xrange(args.iters):
+    
+    for iteration in range(args.iters):
         start_time = time.time()
-
+        
         # Train generator
         if iteration > 0:
             _ = session.run(gen_train_op)
 
         # Train critic
-        for i in xrange(args.critic_iters):
-            _data = gen.next()
+        for i in range(args.critic_iters):
+            _data = next(gen)
             _disc_cost, _ = session.run(
                 [disc_cost, disc_train_op],
                 feed_dict={real_inputs_discrete:_data}
@@ -182,10 +211,10 @@ with tf.Session() as session:
 
         if iteration % 100 == 0 and iteration > 0:
             samples = []
-            for i in xrange(10):
+            for i in range(10):
                 samples.extend(generate_samples())
 
-            for i in xrange(4):
+            for i in range(4):
                 lm = utils.NgramLanguageModel(i+1, samples, tokenize=False)
                 lib.plot.plot('js{}'.format(i+1), lm.js_with(true_char_ngram_lms[i]))
 
@@ -197,8 +226,5 @@ with tf.Session() as session:
         if iteration % args.save_every == 0 and iteration > 0:
             model_saver = tf.train.Saver()
             model_saver.save(session, os.path.join(args.output_dir, 'checkpoints', 'checkpoint_{}.ckpt').format(iteration))
-
-        if iteration % 100 == 0:
-            lib.plot.flush()
 
         lib.plot.tick()

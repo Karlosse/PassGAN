@@ -4,3 +4,9 @@ data/*.txt
 *.pyc
 *.pkl
 .ipynb_checkpoints
+Lib/
+Scripts/
+pyvenv.cfg
+share.zip
+share/
+tflib.zip

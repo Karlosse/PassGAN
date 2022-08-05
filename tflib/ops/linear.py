@@ -109,7 +109,7 @@ def Linear(
             name + '.W',
             weight_values
         )
-
+        
         if weightnorm==None:
             weightnorm = _default_weightnorm
         if weightnorm:
